@@ -1,0 +1,60 @@
+# Hello World Workflow - Your First GitHub Action!
+# Copy this to your repository's .github/workflows/ directory
+
+name: Hello World
+
+# When should this workflow run?
+on:
+  # Run when code is pushed to main branch
+  push:
+    branches: [ main ]
+  
+  # Allow manual triggering from Actions tab
+  workflow_dispatch:
+
+# What jobs should run?
+jobs:
+  # Job 1: Say hello
+  greet:
+    name: Greeting Job
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Basic hello
+    - name: Say Hello
+      run: echo "Hello, GitHub Actions!"
+    
+    # Step 2: Show some system info
+    - name: Show system information
+      run: |
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "Event: ${{ github.event_name }}"
+    
+    # Step 3: Custom message
+    - name: Custom greeting
+      run: |
+        echo "Welcome to GitHub Actions Zero to Hero!"
+        echo "This is your first workflow 🎉"
+        echo "Current date: $(date)"
+
+  # Job 2: Show environment (runs in parallel)
+  environment-info:
+    name: Environment Information
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Display environment
+      run: |
+        echo "=== Environment Variables ==="
+        echo "GITHUB_WORKFLOW: $GITHUB_WORKFLOW"
+        echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"
+        echo "GITHUB_RUN_NUMBER: $GITHUB_RUN_NUMBER"
+        echo "GITHUB_SHA: $GITHUB_SHA"
+
+# Try this:
+# 1. Copy this file to .github/workflows/hello-world.yml in your repo
+# 2. Commit and push to main branch
+# 3. Go to Actions tab to see it run
+# 4. Try clicking "Run workflow" to trigger manually
