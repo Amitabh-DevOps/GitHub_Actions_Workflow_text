@@ -37,7 +37,7 @@ jobs:
       run: |
         echo "Welcome to GitHub Actions Zero to Hero!"
         echo "This is your first workflow 🎉"
-        echo "Current date: $(date)"
+        echo "Current date: $(date)" # Show current date
 
   # Job 2: Show environment (runs in parallel)
   environment-info:
