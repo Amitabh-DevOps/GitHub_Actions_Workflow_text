@@ -1,0 +1,92 @@
+# ===================================================
+# HELLO WORLD WORKFLOW - YOUR FIRST GITHUB ACTION
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand basic workflow structure
+# - Learn about jobs and steps
+# - See how to use GitHub contexts
+# - Explore environment variables
+# - Observe how jobs run in parallel
+# ===================================================
+
+# The name that appears in the GitHub Actions UI
+name: Hello World
+
+# ===================================================
+# TRIGGERS: Define when this workflow should run
+# ===================================================
+on:
+  # Trigger on push to main branch
+  # LEARNING POINT: This is how you automate workflow execution when code changes
+  push:
+    branches: [ main ]
+  
+  # Allow manual triggering from Actions tab
+  # LEARNING POINT: This lets you run workflows on-demand without code changes
+  workflow_dispatch:
+
+# ===================================================
+# JOBS: Define the work to be done
+# ===================================================
+# LEARNING POINT: Jobs run in parallel by default on separate virtual machines
+jobs:
+  # Job 1: Say hello
+  greet:
+    # Name that appears in the GitHub Actions UI
+    name: Greeting Job
+    # LEARNING POINT: This defines the operating system for the virtual machine
+    runs-on: ubuntu-latest
+    
+    # ===================================================
+    # STEPS: Define the sequence of tasks for this job
+    # ===================================================
+    # LEARNING POINT: Steps run sequentially within a job
+    steps:
+    # Step 1: Basic hello - simplest possible step
+    - name: Say Hello
+      # LEARNING POINT: The 'run' command executes shell commands
+      run: echo "Hello, GitHub Actions!"
+    
+    # Step 2: Show system info using GitHub contexts
+    - name: Show system information
+      # LEARNING POINT: The pipe symbol '|' allows multi-line commands
+      # LEARNING POINT: ${{ expression }} syntax accesses GitHub contexts
+      run: |
+        echo "Runner OS: ${{ runner.os }}"          # From runner context
+        echo "Repository: ${{ github.repository }}" # From github context
+        echo "Actor: ${{ github.actor }}"           # User who triggered the workflow
+        echo "Event: ${{ github.event_name }}"      # What triggered this workflow
+    
+    # Step 3: Custom message with date command
+    - name: Custom greeting
+      # LEARNING POINT: You can mix GitHub Actions syntax with shell commands
+      run: |
+        echo "Welcome to GitHub Actions Zero to Hero!"
+        echo "This is your first workflow 🎉"
+        echo "Current date: $(date)"  # Shell command to show current date
+
+  # Job 2: Show environment (runs in parallel with the greet job)
+  # LEARNING POINT: Multiple jobs run in parallel by default
+  environment-info:
+    name: Environment Information
+    runs-on: ubuntu-latest
+    
+    steps:
+    # LEARNING POINT: GitHub provides many default environment variables
+    - name: Display environment
+      run: |
+        echo "=== Environment Variables ==="
+        echo "GITHUB_WORKFLOW: $GITHUB_WORKFLOW"  # Name of the workflow
+        echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"      # Unique ID for this run
+        echo "GITHUB_RUN_NUMBER: $GITHUB_RUN_NUMBER"  # Incremental run number
+        echo "GITHUB_SHA: $GITHUB_SHA"            # Commit SHA that triggered the workflow
+
+# ===================================================
+# NEXT STEPS:
+# ===================================================
+# 1. Copy this file to .github/workflows/hello-world.yml in your repo
+# 2. Commit and push to main branch
+# 3. Go to Actions tab to see it run
+# 4. Try clicking "Run workflow" to trigger manually
+# 5. Experiment by adding more steps or modifying existing ones
+# 6. Try adding job dependencies with 'needs:' to control execution order
