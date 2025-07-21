@@ -122,7 +122,8 @@ jobs:
       - name: Manual trigger with input
         # This step only runs for manual trigger events
         if: github.event_name == 'workflow_dispatch'
-        run: echo "Environment: ${{ github.event.inputs.environment }}"
+        run: |
+          echo "Environment: ${{ github.event.inputs.environment }}"
       
       # LEARNING POINT: Complex conditions with logical operators
       - name: Complex condition
