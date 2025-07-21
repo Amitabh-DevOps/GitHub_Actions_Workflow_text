@@ -13,3 +13,5 @@
 ### Job Execution Successful output 
 <img width="1875" height="982" alt="image" src="https://github.com/user-attachments/assets/2dd8f69c-b1a7-4aa6-8fe0-a9c076f34ccb" />
 
+### After execution the runner again came in `Idle` state, it will be active in workflow is trigger and requires to run job
+<img width="1010" height="267" alt="image" src="https://github.com/user-attachments/assets/a40cb5bb-0664-4852-b500-7c456e58041a" />
