@@ -11,11 +11,11 @@
 
 name: Marketplace Actions Demo
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+on: # Uncomment when to use
+  # push:
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
 
 jobs:
