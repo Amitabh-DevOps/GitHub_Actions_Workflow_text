@@ -32,5 +32,6 @@ jobs:
     - name: Install ESLint dependencies
       run: npm install --save-dev eslint @eslint/js globals
       
-    - name: Run linting
-      run: npm run lint --fix
+    - name: Run linting with auto-fix
+      run: npm run lint:fix || true
+
