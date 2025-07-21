@@ -20,8 +20,8 @@ on:
   # ===================================================
   push:
     # LEARNING POINT: Branch filtering - only run on these branches
-    branches: 
-      - main                # Exact branch name
+    branches: # uncomment main branch when you are using in main branch
+      # - main                # Exact branch name
       - develop             # Another exact branch name
       - 'feature/*'         # Wildcard pattern - all feature branches
     
