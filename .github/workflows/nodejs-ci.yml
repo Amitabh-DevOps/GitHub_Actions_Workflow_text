@@ -71,6 +71,9 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+        ref: master  # Replace with the desired branch or commit
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
