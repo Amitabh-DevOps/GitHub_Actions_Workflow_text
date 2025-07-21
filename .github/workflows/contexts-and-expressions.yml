@@ -1,0 +1,205 @@
+# ===================================================
+# GITHUB CONTEXTS AND EXPRESSIONS - MODULE 3
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand GitHub contexts and how to access them
+# - Learn about expression syntax and functions
+# - Master environment variable scopes and precedence
+# - Implement conditional execution with expressions
+# - Use matrix strategy with context variables
+# ===================================================
+
+name: Contexts and Expressions Demo
+
+# ===================================================
+# TRIGGERS: Multiple trigger types for demonstration
+# ===================================================
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual trigger with input parameter
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options: [staging, production]
+
+# ===================================================
+# GLOBAL ENVIRONMENT VARIABLES: Workflow-level scope
+# ===================================================
+# LEARNING POINT: Variables defined here are available to all jobs
+env:
+  GLOBAL_VAR: "Hello from global scope"
+
+# ===================================================
+# JOBS: Demonstrate different contexts and expressions
+# ===================================================
+jobs:
+  # ===================================================
+  # JOB 1: GITHUB CONTEXT EXAMPLES
+  # ===================================================
+  github-context:
+    name: GitHub Context Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Show GitHub context info
+        # LEARNING POINT: The github context contains workflow run information
+        run: |
+          echo "Repository: ${{ github.repository }}"      # Owner/repo-name
+          echo "Actor: ${{ github.actor }}"                # User who triggered the workflow
+          echo "Event: ${{ github.event_name }}"           # Event that triggered the workflow
+          echo "Branch: ${{ github.ref_name }}"            # Branch name without refs/heads/
+          echo "SHA: ${{ github.sha }}"                    # Commit SHA that triggered the workflow
+          echo "Run number: ${{ github.run_number }}"      # Sequential run number for this workflow
+
+  # ===================================================
+  # JOB 2: ENVIRONMENT VARIABLES AND EXPRESSIONS
+  # ===================================================
+  expressions:
+    name: Expressions Demo
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Job-level environment variables
+    env:
+      JOB_VAR: "Hello from job scope"
+    
+    steps:
+      - name: Environment variables
+        # LEARNING POINT: Step-level environment variables
+        env:
+          STEP_VAR: "Hello from step scope"
+        # LEARNING POINT: Demonstrating variable scope and precedence
+        run: |
+          echo "Global: $GLOBAL_VAR"    # From workflow-level env
+          echo "Job: $JOB_VAR"          # From job-level env
+          echo "Step: $STEP_VAR"        # From step-level env
+      
+      - name: String functions
+        # LEARNING POINT: Built-in functions for string manipulation
+        run: |
+          # Convert to uppercase
+          echo "Uppercase actor: ${{ upper(github.actor) }}"
+          
+          # Check if string contains substring
+          echo "Contains 'main': ${{ contains(github.ref, 'main') }}"
+          
+          # Check if string starts with prefix
+          echo "Starts with 'refs': ${{ startsWith(github.ref, 'refs') }}"
+          
+          # Format string with placeholders
+          echo "Format example: ${{ format('Hello {0}!', github.actor) }}"
+
+  # ===================================================
+  # JOB 3: CONDITIONAL EXPRESSIONS
+  # ===================================================
+  conditionals:
+    name: Conditional Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      # LEARNING POINT: Step with no conditions always runs
+      - name: Always runs
+        run: echo "This step always runs"
+      
+      # LEARNING POINT: Conditional execution based on branch
+      - name: Only on main branch
+        # This step only runs when the branch is main
+        if: github.ref == 'refs/heads/main'
+        run: echo "This only runs on main branch"
+      
+      # LEARNING POINT: Conditional execution based on event type
+      - name: Only on pull requests
+        # This step only runs for pull request events
+        if: github.event_name == 'pull_request'
+        run: echo "This only runs on pull requests"
+      
+      # LEARNING POINT: Accessing manual trigger inputs
+      - name: Manual trigger with input
+        # This step only runs for manual trigger events
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "Environment: ${{ github.event.inputs.environment }}"
+      
+      # LEARNING POINT: Complex conditions with logical operators
+      - name: Complex condition
+        # This step only runs for push events to the main branch
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: echo "Push to main branch detected"
+
+  # ===================================================
+  # JOB 4: RUNNER AND JOB CONTEXT
+  # ===================================================
+  runner-context:
+    name: Runner Context Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      # LEARNING POINT: The runner context provides information about the runner
+      - name: Runner information
+        run: |
+          echo "OS: ${{ runner.os }}"                # Operating system (Linux, Windows, macOS)
+          echo "Architecture: ${{ runner.arch }}"    # CPU architecture (X86, X64, ARM)
+          echo "Temp directory: ${{ runner.temp }}"  # Temporary directory path
+          echo "Workspace: ${{ runner.workspace }}"  # Workspace directory path
+      
+      # LEARNING POINT: Status check functions
+      - name: Job status functions
+        run: |
+          # Returns true if no previous steps have failed
+          echo "Success function: ${{ success() }}"
+          
+          # Always returns true, even if previous steps failed
+          echo "Always function: ${{ always() }}"
+
+  # ===================================================
+  # JOB 5: MATRIX CONTEXT
+  # ===================================================
+  matrix-demo:
+    name: Matrix Demo
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Matrix strategy creates multiple job variations
+    strategy:
+      matrix:
+        # This creates 6 job variations (3 versions × 2 OS)
+        version: [16, 18, 20]
+        os: [ubuntu-latest, windows-latest]
+        # LEARNING POINT: Include adds specific combinations with extra variables
+        include:
+          - version: 20
+            os: ubuntu-latest
+            experimental: true
+    
+    steps:
+      # LEARNING POINT: Accessing matrix variables
+      - name: Matrix values
+        run: |
+          echo "Node version: ${{ matrix.version }}"
+          echo "OS: ${{ matrix.os }}"
+          # This will only be defined for the specific combination above
+          echo "Experimental: ${{ matrix.experimental }}"
+        shell: bash
+
+# ===================================================
+# KEY LEARNING POINTS:
+# ===================================================
+# 1. Use ${{ }} syntax for expressions and context access
+# 2. GitHub context provides repository and event information
+# 3. Environment variables have different scopes (global, job, step)
+# 4. String functions help manipulate text in expressions
+# 5. Conditional expressions control when steps run
+# 6. Runner context provides system information about the virtual machine
+# 7. Matrix context gives access to matrix strategy variables
+# 8. Status check functions help control workflow execution
+
+# ===================================================
+# EXPERIMENT IDEAS:
+# ===================================================
+# 1. Try adding more string functions like replace(), join(), or toJSON()
+# 2. Create more complex conditional expressions with || (OR) operator
+# 3. Add a step that only runs when a previous step fails using failure()
+# 4. Expand the matrix with more combinations and variables
+# 5. Try accessing nested properties in the github.event context
