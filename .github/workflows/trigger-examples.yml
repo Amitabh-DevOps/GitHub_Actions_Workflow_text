@@ -1,0 +1,204 @@
+# ===================================================
+# COMPREHENSIVE TRIGGER EXAMPLES - MODULE 3
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand all major workflow trigger types
+# - Learn how to filter triggers by branch, path, and tag
+# - See how to use manual triggers with inputs
+# - Explore event-specific data access
+# - Master conditional job execution based on event type
+# ===================================================
+
+name: Trigger Examples
+
+# ===================================================
+# TRIGGERS: All major types demonstrated
+# ===================================================
+on:
+  # ===================================================
+  # 1. PUSH TRIGGERS: Run on code pushes
+  # ===================================================
+  push:
+    # LEARNING POINT: Branch filtering - only run on these branches
+    branches: 
+      - main                # Exact branch name
+      - develop             # Another exact branch name
+      - 'feature/*'         # Wildcard pattern - all feature branches
+    
+    # LEARNING POINT: Path filtering - only run when these files change
+    paths:
+      - 'src/**'            # Any file in src directory or subdirectories
+      - '!src/docs/**'      # Exclude files in src/docs directory (note the !)
+    
+    # LEARNING POINT: Tag filtering - run when tags are pushed
+    tags:
+      - 'v*'                # Any tag starting with 'v' (like v1.0.0)
+
+  # ===================================================
+  # 2. PULL REQUEST TRIGGERS: Run on PR activities
+  # ===================================================
+  pull_request:
+    # LEARNING POINT: Only run on PRs targeting these branches
+    branches: [ main ]
+    
+    # LEARNING POINT: Specific PR activities to trigger on
+    types: [opened, synchronize, reopened, ready_for_review]
+    
+    # LEARNING POINT: Ignore changes to these files/paths
+    paths-ignore:
+      - '**.md'             # Ignore all markdown files
+      - 'docs/**'           # Ignore all files in docs directory
+
+  # ===================================================
+  # 3. SCHEDULED TRIGGERS: Run on a time schedule
+  # ===================================================
+  schedule:
+    # LEARNING POINT: Cron syntax: minute hour day-of-month month day-of-week
+    - cron: '0 2 * * *'     # Daily at 2:00 AM UTC
+    - cron: '0 0 * * 0'     # Weekly on Sunday at midnight UTC
+    # Note: Scheduled workflows run on the default branch only
+
+  # ===================================================
+  # 4. MANUAL TRIGGERS: Run on-demand with parameters
+  # ===================================================
+  workflow_dispatch:
+    # LEARNING POINT: Define input parameters for manual runs
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice        # Dropdown selection
+        options:
+          - staging
+          - production
+      
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean       # Checkbox
+        default: false
+
+  # ===================================================
+  # 5. REPOSITORY EVENTS: Run on repository activities
+  # ===================================================
+  issues:
+    # LEARNING POINT: Only trigger on these issue events
+    types: [opened, labeled]
+  
+  release:
+    # LEARNING POINT: Only trigger when releases are published
+    types: [published]
+
+# ===================================================
+# JOBS: Event-specific jobs with conditional execution
+# ===================================================
+jobs:
+  # ===================================================
+  # JOB FOR PUSH EVENTS
+  # ===================================================
+  on-push:
+    name: Runs on Push
+    # LEARNING POINT: Conditional execution based on event type
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push event info
+        # LEARNING POINT: Accessing push-specific context data
+        run: |
+          echo "Triggered by push to: ${{ github.ref }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Pusher: ${{ github.actor }}"
+
+  # ===================================================
+  # JOB FOR PULL REQUEST EVENTS
+  # ===================================================
+  on-pull-request:
+    name: Runs on Pull Request
+    # LEARNING POINT: Only run this job for pull_request events
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR event info
+        # LEARNING POINT: Accessing pull request-specific context data
+        run: |
+          echo "PR #${{ github.event.number }}"
+          echo "PR title: ${{ github.event.pull_request.title }}"
+          echo "PR author: ${{ github.event.pull_request.user.login }}"
+          echo "Base branch: ${{ github.event.pull_request.base.ref }}"
+
+  # ===================================================
+  # JOB FOR SCHEDULED EVENTS
+  # ===================================================
+  on-schedule:
+    name: Runs on Schedule
+    # LEARNING POINT: Only run this job for schedule events
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scheduled job
+        run: |
+          echo "This is a scheduled job"
+          echo "Current time: $(date)"
+          echo "Useful for: backups, cleanup, reports"
+
+  # ===================================================
+  # JOB FOR MANUAL TRIGGER EVENTS
+  # ===================================================
+  on-manual:
+    name: Runs on Manual Trigger
+    # LEARNING POINT: Only run this job for workflow_dispatch events
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manual trigger info
+        # LEARNING POINT: Accessing manual trigger inputs
+        run: |
+          echo "Manually triggered by: ${{ github.actor }}"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Debug enabled: ${{ github.event.inputs.debug }}"
+      
+      # LEARNING POINT: Conditional step execution based on input
+      - name: Debug step
+        if: github.event.inputs.debug == 'true'
+        run: |
+          echo "=== DEBUG MODE ENABLED ==="
+          env  # Print all environment variables
+          echo "=========================="
+
+  # ===================================================
+  # JOB FOR RELEASE EVENTS
+  # ===================================================
+  on-release:
+    name: Runs on Release
+    # LEARNING POINT: Only run this job for release events
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release info
+        # LEARNING POINT: Accessing release-specific context data
+        run: |
+          echo "New release: ${{ github.event.release.tag_name }}"
+          echo "Release name: ${{ github.event.release.name }}"
+          echo "Is prerelease: ${{ github.event.release.prerelease }}"
+
+# ===================================================
+# TRIGGER BEST PRACTICES:
+# ===================================================
+# 1. Use specific branches to avoid unnecessary runs
+# 2. Use path filters to run only when relevant files change
+# 3. Combine multiple triggers when appropriate
+# 4. Use workflow_dispatch for testing and manual operations
+# 5. Be careful with schedule triggers (they run on default branch only)
+# 6. Consider rate limits when using frequent schedules
+# 7. Use conditional jobs to handle different event types
+# 8. Access event-specific data through the github.event context
+
+# ===================================================
+# EXPERIMENT IDEAS:
+# ===================================================
+# 1. Add a new branch to the push trigger
+# 2. Create a custom path filter for specific file types
+# 3. Add another scheduled time for different maintenance tasks
+# 4. Add more input parameters to the workflow_dispatch trigger
+# 5. Create a job that runs for multiple event types with different behaviors
