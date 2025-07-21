@@ -29,6 +29,7 @@ on:
     paths:
       - 'src/**'            # Any file in src directory or subdirectories
       - '!src/docs/**'      # Exclude files in src/docs directory (note the !)
+      - '.github/**'
     
     # LEARNING POINT: Tag filtering - run when tags are pushed
     tags:
