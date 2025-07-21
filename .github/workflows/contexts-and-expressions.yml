@@ -16,9 +16,9 @@ name: Contexts and Expressions Demo
 # ===================================================
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   # Manual trigger with input parameter
   workflow_dispatch:
     inputs:
@@ -27,7 +27,7 @@ on:
         required: true
         default: 'staging'
         type: choice
-        options: [staging, production]
+        options: [ staging, production ]
 
 # ===================================================
 # GLOBAL ENVIRONMENT VARIABLES: Workflow-level scope
