@@ -82,8 +82,8 @@ jobs:
       - name: String functions
         # LEARNING POINT: Built-in functions for string manipulation
         run: |
-          # Convert to uppercase
-          echo "Uppercase actor: ${{ upper(github.actor) }}"
+          # GitHub Actor
+          echo "Actor: ${{ github.actor }}"
           
           # Check if string contains substring
           echo "Contains 'main': ${{ contains(github.ref, 'main') }}"
@@ -148,13 +148,14 @@ jobs:
           echo "Workspace: ${{ runner.workspace }}"  # Workspace directory path
       
       # LEARNING POINT: Status check functions
-      - name: Job status functions
-        run: |
-          # Returns true if no previous steps have failed
-          echo "Success function: ${{ success() }}"
-          
-          # Always returns true, even if previous steps failed
-          echo "Always function: ${{ always() }}"
+      - name: This runs only if previous steps succeeded
+        if: success()
+        run: echo "Previous steps succeeded."
+
+      - name: This runs always, even if previous steps failed
+        if: always()
+        run: echo "This runs regardless of success or failure."
+
 
   # ===================================================
   # JOB 5: MATRIX CONTEXT
