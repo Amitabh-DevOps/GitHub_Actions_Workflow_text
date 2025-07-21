@@ -99,6 +99,8 @@ jobs:
   
     steps:
       - name: SSH into EC2 and deploy Docker container
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -135,7 +137,7 @@ jobs:
             # Print application URL
             echo "-------------------------------------------------"
             echo "Your app is deployed successfully!"
-            echo "Visit: http://${{ secrets.EC2_HOST }}:8000"
+            echo "Visit: http://$EC2_HOST:8000"
             echo "-------------------------------------------------"
   
   
