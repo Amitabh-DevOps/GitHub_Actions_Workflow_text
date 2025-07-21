@@ -14,11 +14,11 @@ name: Contexts and Expressions Demo
 # ===================================================
 # TRIGGERS: Multiple trigger types for demonstration
 # ===================================================
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: # uncomment below 4 lines when to use
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
   # Manual trigger with input parameter
   workflow_dispatch:
     inputs:
