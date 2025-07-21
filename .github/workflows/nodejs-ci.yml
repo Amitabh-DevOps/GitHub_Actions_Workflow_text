@@ -131,7 +131,12 @@ jobs:
             # Run the container
             echo "Starting new container..."
             docker run -d --name todo-app -p 8000:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/todo-node-app-ci:latest
-  
+
+            # Print application URL
+            echo "-------------------------------------------------"
+            echo "Your app is deployed successfully!"
+            echo "Visit: http://${{ secrets.EC2_HOST }}:8000"
+            echo "-------------------------------------------------"
   
   
   
