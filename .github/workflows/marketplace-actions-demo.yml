@@ -1,0 +1,291 @@
+# ===================================================
+# GITHUB ACTIONS MARKETPLACE DEMO - MODULE 3
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Discover popular actions from the GitHub Marketplace
+# - Learn how to use and configure marketplace actions
+# - Understand action versioning and security
+# - Implement common CI/CD patterns with actions
+# - Master job dependencies and artifact sharing
+# ===================================================
+
+name: Marketplace Actions Demo
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ===================================================
+  # JOB 1: SETUP ACTIONS (MOST COMMON)
+  # ===================================================
+  setup-actions:
+    name: Setup Actions Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      # ===================================================
+      # LEARNING POINT: The checkout action is fundamental
+      # It fetches your repository code to the runner
+      # ===================================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # ===================================================
+      # LEARNING POINT: Setup actions configure the environment
+      # This action installs Node.js and enables dependency caching
+      # ===================================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Input parameters customize the action's behavior
+          node-version: '18'     # Specific Node.js version
+          cache: 'npm'           # Enable npm dependency caching
+      
+      # ===================================================
+      # LEARNING POINT: Multiple setup actions can be combined
+      # This installs Python alongside Node.js
+      # ===================================================
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  # Specific Python version
+          cache: 'pip'           # Enable pip dependency caching
+      
+      # Verify our installations worked
+      - name: Verify setups
+        run: |
+          echo "Node: $(node --version)"
+          echo "Python: $(python --version)"
+
+  # ===================================================
+  # JOB 2: CACHING DEMO
+  # ===================================================
+  caching:
+    name: Caching Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # ===================================================
+      # LEARNING POINT: Caching speeds up workflows
+      # The cache action stores and retrieves files between runs
+      # ===================================================
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          # What to cache: npm dependencies directory
+          path: ~/.npm
+          
+          # Cache key: unique identifier based on OS and package-lock.json
+          # If package-lock.json changes, a new cache is created
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          
+          # Fallback keys: used if exact match isn't found
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: Install dependencies
+        run: |
+          echo "Dependencies would be installed here"
+          echo "Cache will speed up subsequent runs"
+          # In a real workflow: npm ci
+
+  # ===================================================
+  # JOB 3: ARTIFACT MANAGEMENT
+  # ===================================================
+  artifacts:
+    name: Artifacts Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # Create some example files to upload
+      - name: Create build files
+        run: |
+          mkdir -p build
+          echo "Build output" > build/app.js
+          echo "Documentation" > build/README.txt
+      
+      # ===================================================
+      # LEARNING POINT: Artifacts share files between jobs
+      # The upload-artifact action saves files for later use
+      # ===================================================
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files        # Artifact name for reference
+          path: build/             # Files/directories to upload
+          retention-days: 7        # How long to keep the artifact
+
+  # ===================================================
+  # JOB 4: USE ARTIFACTS (DEPENDS ON PREVIOUS JOB)
+  # ===================================================
+  use-artifacts:
+    name: Use Artifacts Demo
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Job dependencies with 'needs'
+    # This job will only run after the 'artifacts' job completes
+    needs: artifacts
+    
+    steps:
+      # ===================================================
+      # LEARNING POINT: Download artifacts from previous job
+      # The download-artifact action retrieves previously uploaded files
+      # ===================================================
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files        # Must match the upload name
+          path: downloaded/        # Where to save the files
+      
+      # Verify we got the files
+      - name: List downloaded files
+        run: |
+          echo "Downloaded files:"
+          ls -la downloaded/
+
+  # ===================================================
+  # JOB 5: CODE QUALITY ACTIONS
+  # ===================================================
+  code-quality:
+    name: Code Quality Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # ===================================================
+      # LEARNING POINT: Code quality actions analyze your code
+      # Super Linter checks multiple languages with one action
+      # ===================================================
+      - name: Run Super Linter
+        uses: github/super-linter@v4
+        env:
+          # Configure the linter through environment variables
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For GitHub API access
+          VALIDATE_ALL_CODEBASE: false               # Only changed files
+          VALIDATE_YAML: true                        # Enable YAML linting
+          VALIDATE_JSON: true                        # Enable JSON linting
+        # LEARNING POINT: continue-on-error prevents workflow failure
+        continue-on-error: true  # Don't fail workflow if linting fails
+
+  # ===================================================
+  # JOB 6: SECURITY SCANNING
+  # ===================================================
+  security:
+    name: Security Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # ===================================================
+      # LEARNING POINT: Security scanning actions find vulnerabilities
+      # CodeQL is GitHub's semantic code analysis engine
+      # ===================================================
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript    # Language to analyze
+        continue-on-error: true
+      
+      # LEARNING POINT: Multi-step actions often have separate steps
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        continue-on-error: true
+
+  # ===================================================
+  # JOB 7: NOTIFICATION EXAMPLE
+  # ===================================================
+  notify:
+    name: Notification Demo
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Multiple job dependencies
+    needs: [setup-actions, code-quality]
+    # LEARNING POINT: always() function runs job even if dependencies fail
+    if: always()
+    
+    steps:
+      # ===================================================
+      # LEARNING POINT: Notification actions send alerts
+      # This action sends workflow status to Slack
+      # ===================================================
+      - name: Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}      # Current job status
+          channel: '#ci-cd'              # Slack channel
+          text: 'Workflow completed!'    # Message text
+        env:
+          # LEARNING POINT: Actions often need secrets for API access
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()
+        continue-on-error: true  # Don't fail if webhook not configured
+
+# ===================================================
+# POPULAR MARKETPLACE ACTIONS CATEGORIES:
+# ===================================================
+# 1. Setup actions: Configure your environment
+#    - actions/checkout: Get your code
+#    - actions/setup-node: Install Node.js
+#    - actions/setup-python: Install Python
+#    - actions/setup-java: Install Java
+#
+# 2. Caching: Speed up your workflows
+#    - actions/cache: Cache dependencies
+#    - actions/setup-node with cache parameter
+#
+# 3. Artifacts: Share files between jobs
+#    - actions/upload-artifact: Save files
+#    - actions/download-artifact: Retrieve files
+#
+# 4. Code quality: Improve your code
+#    - github/super-linter: Multi-language linting
+#    - actions/dependency-review-action: Dependency checks
+#
+# 5. Security scanning: Find vulnerabilities
+#    - github/codeql-action: Code security analysis
+#    - snyk/actions: Dependency vulnerability scanning
+#
+# 6. Notifications: Keep your team informed
+#    - 8398a7/action-slack: Slack notifications
+#    - dawidd6/action-send-mail: Email notifications
+#
+# 7. Deployment: Release your code
+#    - Azure/webapps-deploy: Deploy to Azure
+#    - aws-actions/amazon-ecr-login: AWS container registry
+#
+# 8. Utilities: Helpful tools
+#    - actions/github-script: Run GitHub API scripts
+#    - peter-evans/create-pull-request: Create PRs
+
+# ===================================================
+# MARKETPLACE ACTION BEST PRACTICES:
+# ===================================================
+# 1. Always pin actions to specific versions (v4) or commit SHAs
+# 2. Check the action's documentation for required inputs
+# 3. Look for verified creators (GitHub, AWS, Azure, etc.)
+# 4. Review the action's source code for security
+# 5. Start with official actions when available
+# 6. Use continue-on-error for non-critical actions
+# 7. Consider rate limits for third-party services
+
+# ===================================================
+# EXPERIMENT IDEAS:
+# ===================================================
+# 1. Try adding another setup action (Java, Go, Ruby, etc.)
+# 2. Implement a different caching strategy
+# 3. Add a code formatting action like prettier
+# 4. Try a different notification service
+# 5. Add a deployment action for your preferred platform
