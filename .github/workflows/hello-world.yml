@@ -18,8 +18,9 @@ name: Hello World
 on:
   # Trigger on push to main branch
   # LEARNING POINT: This is how you automate workflow execution when code changes
-  push:
-    branches: [ main ]
+  # uncomment below 2 lines when to use
+  # push:
+  #   branches: [ main ]
   
   # Allow manual triggering from Actions tab
   # LEARNING POINT: This lets you run workflows on-demand without code changes
