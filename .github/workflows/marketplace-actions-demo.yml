@@ -33,7 +33,10 @@ jobs:
       # ===================================================
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        with:
+          repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+          ref: master  # Replace with the desired branch or commit
+          
       # ===================================================
       # LEARNING POINT: Setup actions configure the environment
       # This action installs Node.js and enables dependency caching
@@ -71,7 +74,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        with:
+          repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+          ref: master  # Replace with the desired branch or commit
+        
       # ===================================================
       # LEARNING POINT: Caching speeds up workflows
       # The cache action stores and retrieves files between runs
@@ -106,7 +112,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        with:
+          repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+          ref: master  # Replace with the desired branch or commit
+          
       # Create some example files to upload
       - name: Create build files
         run: |
@@ -162,7 +171,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        with:
+          repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+          ref: master  # Replace with the desired branch or commit
+          
       # ===================================================
       # LEARNING POINT: Code quality actions analyze your code
       # Super Linter checks multiple languages with one action
@@ -189,7 +201,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        with:
+          repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+          ref: master  # Replace with the desired branch or commit
+        
       # ===================================================
       # LEARNING POINT: Security scanning actions find vulnerabilities
       # CodeQL is GitHub's semantic code analysis engine
