@@ -1,0 +1,69 @@
+# ===================================================
+# HELLO WORLD SELF-HOSTED RUNNER TEST - MODULE 3
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand how to target self-hosted runners
+# - Learn how to verify runner functionality
+# - See basic environment information retrieval
+# - Experience the difference between GitHub-hosted and self-hosted runners
+# ===================================================
+
+name: Hello World Self-Hosted Runner
+
+# LEARNING POINT: Multiple trigger types for flexibility
+on:
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+  
+  # Automatic trigger on push to main branch
+  push:
+    branches: [ main ]
+
+jobs:
+  # LEARNING POINT: Simple job targeting self-hosted runner
+  hello-world:
+    # LEARNING POINT: This is how you specify a self-hosted runner
+    # Instead of ubuntu-latest, windows-latest, etc.
+    runs-on: self-hosted
+    
+    steps:
+      # LEARNING POINT: Standard checkout action works on self-hosted runners too
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # LEARNING POINT: Basic hello world with runner information
+      - name: Hello from self-hosted runner
+        run: |
+          echo "========================================"
+          echo "👋 Hello, World! I'm a self-hosted runner!"
+          echo "========================================"
+          echo "🏷️ Runner name: ${{ runner.name }}"
+          echo "💻 Runner OS: ${{ runner.os }}"
+          echo "📂 Working directory: $(pwd)"
+          echo "📦 Repository: ${{ github.repository }}"
+          echo "🔄 Workflow: ${{ github.workflow }}"
+      
+      # LEARNING POINT: Simple system information for verification
+      - name: Basic system info
+        run: |
+          echo "========================================"
+          echo "📊 System Information"
+          echo "========================================"
+          echo "🖥️ Hostname: $(hostname)"
+          echo "💾 Disk space:"
+          df -h / | grep -v Filesystem
+          
+          # Show that we're running on the self-hosted machine
+          echo "🌐 IP Address:"
+          hostname -I || echo "IP address command not available"
+
+# ===================================================
+# LEARNING NOTES:
+# ===================================================
+# 1. Self-hosted runners are specified with "runs-on: self-hosted"
+# 2. You can add labels to runners and target them with:
+#    runs-on: [self-hosted, linux, production]
+# 3. Self-hosted runners have access to their host environment
+# 4. You can install custom software on self-hosted runners
+# 5. Self-hosted runners can access internal networks
+# ===================================================
