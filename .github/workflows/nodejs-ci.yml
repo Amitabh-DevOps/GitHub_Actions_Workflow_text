@@ -1,6 +1,6 @@
 name: Node.js CI
 
-on: # uncomment below lines when to use
+on: # uncomment below 4 lines when to use
   # push:
   #   branches: [ main ]
   # pull_request:
