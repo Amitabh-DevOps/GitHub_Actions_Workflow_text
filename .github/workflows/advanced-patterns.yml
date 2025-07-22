@@ -111,10 +111,10 @@ jobs:
           echo "All tests completed successfully!"
           
           # You could also determine overall success/failure:
-          # if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
-          #   echo "Some tests failed!"
-          #   exit 1
-          # fi
+          if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
+            echo "Some tests failed!"
+            exit 1
+          fi
 
   # ===================================================
   # PATTERN 4: CONDITIONAL EXECUTION
