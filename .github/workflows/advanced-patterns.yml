@@ -114,7 +114,7 @@ jobs:
           echo "All tests completed successfully!"
           
           # You could also determine overall success/failure:
-          if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
+          if [[ "${{ contains(needs.test.outputs.status, 'failure') }}" == "true" ]]; then
             echo "Some tests failed!"
             exit 1
           fi
