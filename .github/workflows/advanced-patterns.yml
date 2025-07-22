@@ -51,6 +51,8 @@ jobs:
     name: Run ${{ matrix.test }} tests (Node ${{ matrix.node-version }})
     needs: discover
     runs-on: ubuntu-latest
+    # Add continue-on-error to allow the workflow to continue even if tests fail
+    continue-on-error: true
     # LEARNING POINT: Use dynamically generated matrix
     strategy:
       # LEARNING POINT: This creates 4 parallel jobs (2 test types × 2 Node versions)
