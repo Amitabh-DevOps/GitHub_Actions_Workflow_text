@@ -1,0 +1,122 @@
+# ===================================================
+# REUSABLE WORKFLOW EXAMPLE - MODULE 5
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand how to create reusable workflows
+# - Learn how to define inputs, secrets, and outputs
+# - See how to structure a reusable workflow
+# - Implement best practices for reusability
+# ===================================================
+
+name: Reusable Build and Test
+
+# The 'workflow_call' trigger indicates this is a reusable workflow
+on:
+  workflow_call:
+    # Define inputs that callers can pass
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '18'
+        type: string
+      
+      run-lint:
+        description: 'Whether to run linting'
+        required: false
+        default: true
+        type: boolean
+      
+      artifact-name:
+        description: 'Name for the uploaded artifact'
+        required: false
+        default: 'build'
+        type: string
+    
+    # Define secrets that callers can pass
+    secrets:
+      NPM_TOKEN:
+        description: 'NPM token for private packages'
+        required: false
+    
+    # Define outputs that callers can access
+    outputs:
+      test-result:
+        description: 'Test result summary'
+        value: ${{ jobs.test.outputs.result }}
+      build-id:
+        description: 'Unique build identifier'
+        value: ${{ jobs.test.outputs.build-id }}
+
+# Define the jobs in the reusable workflow
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Define job outputs that will become workflow outputs
+    outputs:
+      result: ${{ steps.test-summary.outputs.result }}
+      build-id: ${{ steps.generate-id.outputs.id }}
+    
+    steps:
+      # LEARNING POINT: Generate a unique build ID
+      - name: Generate build ID
+        id: generate-id
+        run: echo "id=$(date +'%Y%m%d%H%M%S')-$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+      
+      # LEARNING POINT: Standard checkout action
+      - uses: actions/checkout@v4
+        with:
+          repository: Amitabh-DevOps/Project-03-Jenkins-CI-CD-Project-Todo-node-app # Replace with the actual repository
+          ref: master  # Replace with the desired branch or commit
+      
+      # LEARNING POINT: Setup with input parameter
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+      
+      # LEARNING POINT: Using secrets in a reusable workflow
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # Use the secret if provided
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      # LEARNING POINT: Conditional step based on input
+      - name: Lint
+        if: ${{ inputs.run-lint }}
+        run: npm run lint
+      
+      # LEARNING POINT: Always run this step
+      - name: Test
+        run: npm test
+      
+      # LEARNING POINT: Build the application
+      - name: Build
+        run: npm run build
+      
+      # LEARNING POINT: Upload artifacts with dynamic name
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: dist/
+          retention-days: 1
+      
+      # LEARNING POINT: Set output for the caller workflow
+      - name: Generate test summary
+        id: test-summary
+        run: |
+          echo "result=Tests completed successfully with build ID ${{ steps.generate-id.outputs.id }}" >> $GITHUB_OUTPUT
+
+# ===================================================
+# BEST PRACTICES DEMONSTRATED:
+# ===================================================
+# 1. Default values for optional inputs
+# 2. Clear descriptions for all inputs, secrets, and outputs
+# 3. Conditional execution based on inputs
+# 4. Proper output handling
+# 5. Artifact management
+# 6. Unique build identification
+# 7. Proper Node.js setup with caching
