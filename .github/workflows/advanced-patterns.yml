@@ -40,7 +40,7 @@ jobs:
           
           # For demonstration, we'll use a simple hardcoded matrix
           # In a real scenario, you might scan directories or query an API
-          echo 'matrix={"test":["unit","integration"],"node-version":["16","18"]}' >> $GITHUB_OUTPUT
+          echo 'matrix={"test":["unit","integration"]}' >> $GITHUB_OUTPUT
           
           echo "Matrix generated!"
 
@@ -48,48 +48,33 @@ jobs:
   # PATTERN 2: FAN-OUT (PARALLEL EXECUTION)
   # ===================================================
   test:
-    name: Run ${{ matrix.test }} tests (Node ${{ matrix.node-version }})
+    name: Run ${{ matrix.test }} tests
     needs: discover
     runs-on: ubuntu-latest
-    # Add continue-on-error to allow the workflow to continue even if tests fail
-    continue-on-error: true
     # LEARNING POINT: Use dynamically generated matrix
     strategy:
-      # LEARNING POINT: This creates 4 parallel jobs (2 test types × 2 Node versions)
+      # LEARNING POINT: This creates parallel jobs for each test type
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
-      # LEARNING POINT: Continue other jobs even if one fails
-      fail-fast: false
     
     # LEARNING POINT: Each job produces an output
     outputs:
-      status: ${{ steps.run-tests.outputs.status }}
+      result: ${{ steps.run-tests.outputs.result }}
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
       
       # LEARNING POINT: Different steps based on test type
       - name: Run ${{ matrix.test }} tests
         id: run-tests
         run: |
-          echo "Running ${{ matrix.test }} tests with Node ${{ matrix.node-version }}..."
+          echo "Running ${{ matrix.test }} tests..."
           
           # Simulate test execution
           sleep 2
           
-          # For demonstration, we'll randomly succeed or fail
-          if [[ $RANDOM -gt 16000 ]]; then
-            echo "Tests passed!"
-            echo "status=passed" >> $GITHUB_OUTPUT
-          else
-            echo "Tests failed!"
-            echo "status=failure" >> $GITHUB_OUTPUT
-            exit 1  # This makes the job actually fail
-          fi
+          # For demonstration, all tests pass
+          echo "Tests passed!"
+          echo "result=passed" >> $GITHUB_OUTPUT
 
   # ===================================================
   # PATTERN 3: FAN-IN (RESULT AGGREGATION)
@@ -99,25 +84,13 @@ jobs:
     # LEARNING POINT: This job runs after all test jobs complete
     needs: test
     runs-on: ubuntu-latest
-    # LEARNING POINT: Run even if some tests failed
-    if: always()
     
     steps:
       # LEARNING POINT: Access outputs from all matrix combinations
       - name: Collect test results
         run: |
           echo "Collecting test results from all jobs..."
-          
-          # In a real scenario, you would process all test results
-          # and generate a comprehensive report
-          
           echo "All tests completed successfully!"
-          
-          # You could also determine overall success/failure:
-          if [[ "${{ contains(needs.test.outputs.status, 'failure') }}" == "true" ]]; then
-            echo "Some tests failed!"
-            exit 1
-          fi
 
   # ===================================================
   # PATTERN 4: CONDITIONAL EXECUTION
@@ -126,20 +99,10 @@ jobs:
     name: Conditional Deployment
     needs: [test, report]
     runs-on: ubuntu-latest
-    # LEARNING POINT: Complex conditional based on multiple factors
-    if: |
-      always() &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      !contains(needs.test.result, 'failure')
+    # LEARNING POINT: Only run on push to main branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-      - name: Deployment preparation
-        run: |
-          echo "Preparing for deployment..."
-          echo "All tests passed, proceeding with deployment"
-      
-      # LEARNING POINT: Different deployment based on branch
       - name: Deploy
         run: |
           echo "Deploying to production..."
@@ -151,7 +114,6 @@ jobs:
 # 1. Fan-out/fan-in pattern allows parallel execution followed by result aggregation
 # 2. Dynamic matrix generation creates flexible parallel jobs
 # 3. Job outputs can be shared between jobs using needs.<job>.outputs
-# 4. Complex conditionals control when jobs should run
-# 5. The 'always()' function ensures jobs run even if previous jobs fail
-# 6. The 'needs' keyword creates job dependencies
+# 4. Conditional execution controls when jobs should run
+# 5. The 'needs' keyword creates job dependencies
 # ===================================================
