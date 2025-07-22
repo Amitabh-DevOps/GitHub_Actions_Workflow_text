@@ -1,0 +1,153 @@
+# ===================================================
+# MULTI-ENVIRONMENT WORKFLOW EXAMPLE - MODULE 4
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand environment-specific deployments
+# - Learn how to implement deployment approvals
+# - See how to use environment variables and secrets
+# - Implement progressive deployment strategies
+# ===================================================
+
+name: Multi-Environment Deployment
+
+on:
+  # Manual trigger with environment selection
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+# LEARNING POINT: Ensure only one deployment runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # LEARNING POINT: Simple build job
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Build application
+        run: |
+          echo "Building application..."
+          # In a real scenario, you would run actual build commands
+          echo "Build completed!"
+      
+      # LEARNING POINT: Upload artifacts for deployment jobs
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: .  # In a real scenario, this would be your build output directory
+          retention-days: 1
+
+  # LEARNING POINT: Development environment deployment
+  deploy-dev:
+    name: Deploy to Development
+    needs: build
+    # LEARNING POINT: Only run if development environment is selected
+    if: github.event.inputs.environment == 'development'
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Specify the environment
+    environment: development
+    
+    steps:
+      # LEARNING POINT: Download artifacts from previous job
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+      
+      # LEARNING POINT: Use environment-specific variables
+      - name: Deploy to development
+        run: |
+          echo "========================================"
+          echo "🚀 Deploying to DEVELOPMENT environment"
+          echo "========================================"
+          
+          # LEARNING POINT: Use environment-specific secrets
+          echo "🔐 Using deployment credentials..."
+          # DON'T print secrets: echo "${{ secrets.DEPLOY_TOKEN }}"
+          
+          # Simulate deployment
+          echo "✅ Deployment to development successful!"
+
+  # LEARNING POINT: Staging environment deployment
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    # LEARNING POINT: Only run if staging environment is selected
+    if: github.event.inputs.environment == 'staging'
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Staging environment may have approval requirements
+    environment: staging
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+      
+      - name: Deploy to staging
+        run: |
+          echo "========================================"
+          echo "🚀 Deploying to STAGING environment"
+          echo "========================================"
+          
+          # Simulate deployment
+          echo "✅ Deployment to staging successful!"
+
+  # LEARNING POINT: Production environment deployment
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    # LEARNING POINT: Only run if production environment is selected
+    if: github.event.inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Production environment should have strict approval requirements
+    environment: production
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+      
+      - name: Deploy to production
+        run: |
+          echo "========================================"
+          echo "🚀 Deploying to PRODUCTION environment"
+          echo "========================================"
+          
+          # Simulate deployment
+          echo "✅ Deployment to production successful!"
+
+# ===================================================
+# LEARNING NOTES:
+# ===================================================
+# 1. Environments (development, staging, production) are configured in 
+#    repository settings with appropriate protection rules
+# 2. Each environment can have its own:
+#    - Approval requirements
+#    - Environment secrets
+# 3. The workflow_dispatch trigger allows manual selection of environment
+# 4. Artifacts are shared between jobs using upload/download actions
+# 5. Concurrency control prevents multiple deployments running simultaneously
+# ===================================================
