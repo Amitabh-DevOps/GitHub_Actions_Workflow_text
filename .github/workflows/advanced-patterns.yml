@@ -1,0 +1,154 @@
+# ===================================================
+# ADVANCED PATTERNS WORKFLOW EXAMPLE - MODULE 4
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand fan-out/fan-in pattern
+# - Learn dynamic matrix generation
+# - See conditional job execution
+# - Implement job output sharing
+# ===================================================
+
+name: Advanced Workflow Patterns
+
+on:
+  # Manual trigger for easy testing
+  workflow_dispatch:
+  
+  # Automatic trigger on push to main
+  push:
+    branches: [main]
+
+jobs:
+  # ===================================================
+  # PATTERN 1: DYNAMIC MATRIX GENERATION
+  # ===================================================
+  discover:
+    name: Discover Test Suites
+    runs-on: ubuntu-latest
+    # LEARNING POINT: This job discovers what needs to be tested
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # LEARNING POINT: Dynamically generate a matrix based on repository content
+      - name: Find test directories
+        id: set-matrix
+        run: |
+          echo "Finding test suites..."
+          
+          # For demonstration, we'll use a simple hardcoded matrix
+          # In a real scenario, you might scan directories or query an API
+          echo 'matrix={"test":["unit","integration"],"node-version":["16","18"]}' >> $GITHUB_OUTPUT
+          
+          echo "Matrix generated!"
+
+  # ===================================================
+  # PATTERN 2: FAN-OUT (PARALLEL EXECUTION)
+  # ===================================================
+  test:
+    name: Run ${{ matrix.test }} tests (Node ${{ matrix.node-version }})
+    needs: discover
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Use dynamically generated matrix
+    strategy:
+      # LEARNING POINT: This creates 4 parallel jobs (2 test types × 2 Node versions)
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+      # LEARNING POINT: Continue other jobs even if one fails
+      fail-fast: false
+    
+    # LEARNING POINT: Each job produces an output
+    outputs:
+      status: ${{ steps.run-tests.outputs.status }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      # LEARNING POINT: Different steps based on test type
+      - name: Run ${{ matrix.test }} tests
+        id: run-tests
+        run: |
+          echo "Running ${{ matrix.test }} tests with Node ${{ matrix.node-version }}..."
+          
+          # Simulate test execution
+          sleep 2
+          
+          # For demonstration, we'll randomly succeed or fail
+          if [[ $RANDOM -gt 16000 ]]; then
+            echo "Tests passed!"
+            echo "status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "Tests passed!"
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi
+
+  # ===================================================
+  # PATTERN 3: FAN-IN (RESULT AGGREGATION)
+  # ===================================================
+  report:
+    name: Aggregate Test Results
+    # LEARNING POINT: This job runs after all test jobs complete
+    needs: test
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Run even if some tests failed
+    if: always()
+    
+    steps:
+      # LEARNING POINT: Access outputs from all matrix combinations
+      - name: Collect test results
+        run: |
+          echo "Collecting test results from all jobs..."
+          
+          # In a real scenario, you would process all test results
+          # and generate a comprehensive report
+          
+          echo "All tests completed successfully!"
+          
+          # You could also determine overall success/failure:
+          # if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
+          #   echo "Some tests failed!"
+          #   exit 1
+          # fi
+
+  # ===================================================
+  # PATTERN 4: CONDITIONAL EXECUTION
+  # ===================================================
+  deploy:
+    name: Conditional Deployment
+    needs: [test, report]
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Complex conditional based on multiple factors
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      !contains(needs.test.result, 'failure')
+    
+    steps:
+      - name: Deployment preparation
+        run: |
+          echo "Preparing for deployment..."
+          echo "All tests passed, proceeding with deployment"
+      
+      # LEARNING POINT: Different deployment based on branch
+      - name: Deploy
+        run: |
+          echo "Deploying to production..."
+          echo "Deployment successful!"
+
+# ===================================================
+# LEARNING NOTES:
+# ===================================================
+# 1. Fan-out/fan-in pattern allows parallel execution followed by result aggregation
+# 2. Dynamic matrix generation creates flexible parallel jobs
+# 3. Job outputs can be shared between jobs using needs.<job>.outputs
+# 4. Complex conditionals control when jobs should run
+# 5. The 'always()' function ensures jobs run even if previous jobs fail
+# 6. The 'needs' keyword creates job dependencies
+# ===================================================
