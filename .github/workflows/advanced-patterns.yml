@@ -20,64 +20,105 @@ on:
 
 jobs:
   # ===================================================
-  # PATTERN 1: RANDOM TEST OUTCOME
+  # PATTERN 1: SETUP - Prepares work for parallel jobs
+  # ===================================================
+  setup:
+    name: Setup Test Environment
+    runs-on: ubuntu-latest
+    # LEARNING POINT: This job prepares data for parallel jobs
+    outputs:
+      test-data: ${{ steps.prepare.outputs.test-data }}
+    
+    steps:
+      - name: Prepare test data
+        id: prepare
+        run: |
+          echo "Preparing test data for parallel jobs..."
+          # Create test data for parallel jobs
+          echo 'test-data=["unit","api","ui"]' >> $GITHUB_OUTPUT
+          echo "Test data prepared!"
+
+  # ===================================================
+  # PATTERN 2: FAN-OUT - Run tests in parallel
   # ===================================================
   test:
-    name: Run Tests
+    name: Test ${{ matrix.test-type }}
+    needs: setup
     runs-on: ubuntu-latest
-    # LEARNING POINT: Allow the workflow to continue even if the test fails
+    # LEARNING POINT: Allow the workflow to continue even if tests fail
     continue-on-error: true
-    # LEARNING POINT: Job produces an output
+    # LEARNING POINT: Create parallel jobs based on setup output
+    strategy:
+      matrix:
+        test-type: ${{ fromJson(needs.setup.outputs.test-data) }}
+      fail-fast: false
+    
+    # LEARNING POINT: Each parallel job produces an output
     outputs:
-      status: ${{ steps.run-tests.outputs.status }}
+      status-${{ matrix.test-type }}: ${{ steps.run-test.outputs.status }}
     
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run tests
-        id: run-tests
+      - name: Run ${{ matrix.test-type }} tests
+        id: run-test
         run: |
-          echo "Running tests..."
+          echo "Running ${{ matrix.test-type }} tests..."
           
-          # Randomly pass or fail based on a coin flip
-          if [[ $((RANDOM % 2)) -eq 0 ]]; then
-            echo "Tests passed!"
+          # Different behavior based on test type
+          if [[ "${{ matrix.test-type }}" == "unit" ]]; then
+            # Unit tests always pass
+            echo "Unit tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.test-type }}" == "api" ]]; then
+            # API tests randomly pass or fail
+            if [[ $((RANDOM % 2)) -eq 0 ]]; then
+              echo "API tests passed!"
+              echo "status=passed" >> $GITHUB_OUTPUT
+            else
+              echo "API tests failed!"
+              echo "status=failed" >> $GITHUB_OUTPUT
+              exit 1
+            fi
           else
-            echo "Tests failed!"
+            # UI tests always fail
+            echo "UI tests failed!"
             echo "status=failed" >> $GITHUB_OUTPUT
-            # Force an error to ensure this job fails
             exit 1
           fi
 
   # ===================================================
-  # PATTERN 2: RESULT REPORTING
+  # PATTERN 3: FAN-IN - Aggregate results from parallel jobs
   # ===================================================
   report:
-    name: Report Test Results
-    # LEARNING POINT: This job runs after the test job completes
+    name: Aggregate Test Results
+    # LEARNING POINT: This job runs after all parallel test jobs complete
     needs: test
     runs-on: ubuntu-latest
-    # LEARNING POINT: Run even if the test failed
+    # LEARNING POINT: Run even if some tests failed
     if: always()
     
     steps:
-      # LEARNING POINT: Access outputs from the test job
-      - name: Check test results
+      # LEARNING POINT: Access outputs from all parallel jobs
+      - name: Collect test results
         run: |
+          echo "Collecting results from all parallel test jobs..."
+          
           echo "Test results summary:"
           echo "---------------------"
-          echo "Test status: ${{ needs.test.outputs.status }}"
+          echo "Unit tests: ${{ needs.test.outputs['status-unit'] || 'unknown' }}"
+          echo "API tests: ${{ needs.test.outputs['status-api'] || 'unknown' }}"
+          echo "UI tests: ${{ needs.test.outputs['status-ui'] || 'unknown' }}"
           
-          # Check if the test job failed
-          if [[ "${{ needs.test.result }}" == "failure" ]]; then
-            echo "❌ Tests failed"
+          # Check if any job failed
+          if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
+            echo "❌ Some tests failed"
           else
-            echo "✅ Tests passed"
+            echo "✅ All tests passed"
           fi
 
   # ===================================================
-  # PATTERN 3: CONDITIONAL EXECUTION
+  # PATTERN 4: CONDITIONAL EXECUTION
   # ===================================================
   deploy-staging:
     name: Deploy to Staging
@@ -96,7 +137,7 @@ jobs:
     name: Deploy to Production
     needs: [test, report]
     runs-on: ubuntu-latest
-    # LEARNING POINT: Only deploy to production if tests pass
+    # LEARNING POINT: Only deploy to production if all tests pass
     if: needs.test.result == 'success'
     
     steps:
@@ -108,11 +149,14 @@ jobs:
 # ===================================================
 # LEARNING NOTES:
 # ===================================================
-# 1. Random outcomes demonstrate how workflows handle success and failure
-# 2. Job outputs can be shared between jobs using needs.<job>.outputs
-# 3. continue-on-error allows the workflow to proceed even when tests fail
-# 4. Conditional execution controls when jobs should run
-# 5. The 'always()' function ensures jobs run regardless of previous job status
-# 6. The 'needs' keyword creates job dependencies
-# 7. The job.result value can be checked to determine if a job succeeded or failed
+# 1. Fan-out/fan-in pattern:
+#    - Setup job prepares data (fan-out preparation)
+#    - Test jobs run in parallel (fan-out execution)
+#    - Report job collects results (fan-in)
+# 2. Dynamic matrix creation from job outputs
+# 3. Job outputs can be shared between jobs
+# 4. continue-on-error allows the workflow to proceed even when tests fail
+# 5. Conditional execution controls when jobs should run
+# 6. The 'always()' function ensures jobs run regardless of previous job status
+# 7. The 'needs' keyword creates job dependencies
 # ===================================================
