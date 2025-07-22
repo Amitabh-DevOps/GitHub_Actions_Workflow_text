@@ -96,16 +96,12 @@ jobs:
       - name: Test
         run: npm test
       
-      # LEARNING POINT: Build the application
-      # - name: Build
-      #   run: npm run build
-      
       # LEARNING POINT: Upload artifacts with dynamic name
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
-          path: dist/
+          path: .
           retention-days: 1
       
       # LEARNING POINT: Set output for the caller workflow
