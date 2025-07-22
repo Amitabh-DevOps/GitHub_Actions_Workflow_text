@@ -20,101 +20,60 @@ on:
 
 jobs:
   # ===================================================
-  # PATTERN 1: FAN-OUT (PARALLEL EXECUTION)
+  # PATTERN 1: RANDOM TEST OUTCOME
   # ===================================================
-  # LEARNING POINT: Separate jobs for different test types
-  unit-test:
-    name: Run Unit Tests
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    # LEARNING POINT: Each job produces an output
-    outputs:
-      status: ${{ steps.run-tests.outputs.status }}
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run unit tests
-        id: run-tests
-        run: |
-          echo "Running unit tests..."
-          echo "Unit tests passed!"
-          echo "status=passed" >> $GITHUB_OUTPUT
-
-  integration-test:
-    name: Run Integration Tests
-    runs-on: ubuntu-latest
-    # LEARNING POINT: Allow the workflow to continue even if this test fails
+    # LEARNING POINT: Allow the workflow to continue even if the test fails
     continue-on-error: true
-    # LEARNING POINT: Each job produces an output
+    # LEARNING POINT: Job produces an output
     outputs:
       status: ${{ steps.run-tests.outputs.status }}
     
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run integration tests
+      - name: Run tests
         id: run-tests
         run: |
-          echo "Running integration tests..."
+          echo "Running tests..."
           
-          # Randomly pass or fail
-          if [[ $RANDOM -gt 16000 ]]; then
-            echo "Integration tests passed!"
+          # Randomly pass or fail based on a coin flip
+          if [[ $((RANDOM % 2)) -eq 0 ]]; then
+            echo "Tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
           else
-            echo "Integration tests passed!"
-            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "Tests failed!"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            # Force an error to ensure this job fails
+            exit 1
           fi
 
-  e2e-test:
-    name: Run E2E Tests
-    runs-on: ubuntu-latest
-    # LEARNING POINT: Allow the workflow to continue even if this test fails
-    continue-on-error: true
-    # LEARNING POINT: Each job produces an output
-    outputs:
-      status: ${{ steps.run-tests.outputs.status }}
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run E2E tests
-        id: run-tests
-        run: |
-          echo "Running E2E tests..."
-          echo "E2E tests failed!"
-          echo "status=failed" >> $GITHUB_OUTPUT
-          # Force an error to ensure this job fails
-          exit 1
-
   # ===================================================
-  # PATTERN 2: FAN-IN (RESULT AGGREGATION)
+  # PATTERN 2: RESULT REPORTING
   # ===================================================
   report:
-    name: Aggregate Test Results
-    # LEARNING POINT: This job runs after all test jobs complete
-    needs: [unit-test, integration-test, e2e-test]
+    name: Report Test Results
+    # LEARNING POINT: This job runs after the test job completes
+    needs: test
     runs-on: ubuntu-latest
-    # LEARNING POINT: Run even if some tests failed
+    # LEARNING POINT: Run even if the test failed
     if: always()
     
     steps:
-      # LEARNING POINT: Access outputs from all test jobs
-      - name: Collect test results
+      # LEARNING POINT: Access outputs from the test job
+      - name: Check test results
         run: |
-          echo "Collecting test results from all jobs..."
-          
           echo "Test results summary:"
           echo "---------------------"
-          echo "Unit tests: ${{ needs.unit-test.outputs.status }}"
-          echo "Integration tests: ${{ needs.integration-test.outputs.status }}"
-          echo "E2E tests: ${{ needs.e2e-test.outputs.status }}"
+          echo "Test status: ${{ needs.test.outputs.status }}"
           
-          # Check if any job failed
-          if [[ "${{ needs.e2e-test.result }}" == "failure" ]]; then
-            echo "❌ E2E tests failed"
+          # Check if the test job failed
+          if [[ "${{ needs.test.result }}" == "failure" ]]; then
+            echo "❌ Tests failed"
           else
-            echo "✅ All tests passed"
+            echo "✅ Tests passed"
           fi
 
   # ===================================================
@@ -122,7 +81,7 @@ jobs:
   # ===================================================
   deploy-staging:
     name: Deploy to Staging
-    needs: [unit-test, integration-test, e2e-test, report]
+    needs: [test, report]
     runs-on: ubuntu-latest
     # LEARNING POINT: Always deploy to staging, even if tests fail
     if: always()
@@ -135,13 +94,10 @@ jobs:
 
   deploy-production:
     name: Deploy to Production
-    needs: [unit-test, integration-test, e2e-test, report]
+    needs: [test, report]
     runs-on: ubuntu-latest
-    # LEARNING POINT: Only deploy to production if all tests pass
-    if: |
-      needs.unit-test.result == 'success' && 
-      needs.integration-test.result == 'success' && 
-      needs.e2e-test.result == 'success'
+    # LEARNING POINT: Only deploy to production if tests pass
+    if: needs.test.result == 'success'
     
     steps:
       - name: Deploy to production
@@ -152,11 +108,11 @@ jobs:
 # ===================================================
 # LEARNING NOTES:
 # ===================================================
-# 1. Fan-out/fan-in pattern allows parallel execution followed by result aggregation
-# 2. Separate jobs can run in parallel without using a matrix
-# 3. Job outputs can be shared between jobs using needs.<job>.outputs
-# 4. continue-on-error allows the workflow to proceed even when tests fail
-# 5. Conditional execution controls when jobs should run
-# 6. The 'always()' function ensures jobs run regardless of previous job status
-# 7. The 'needs' keyword creates job dependencies
+# 1. Random outcomes demonstrate how workflows handle success and failure
+# 2. Job outputs can be shared between jobs using needs.<job>.outputs
+# 3. continue-on-error allows the workflow to proceed even when tests fail
+# 4. Conditional execution controls when jobs should run
+# 5. The 'always()' function ensures jobs run regardless of previous job status
+# 6. The 'needs' keyword creates job dependencies
+# 7. The job.result value can be checked to determine if a job succeeded or failed
 # ===================================================
