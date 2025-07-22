@@ -10,11 +10,11 @@
 
 name: CI Pipeline with Reusable Workflow
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: # uncomment below trigger when want to use them
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
   workflow_dispatch:
     inputs:
       environment:
