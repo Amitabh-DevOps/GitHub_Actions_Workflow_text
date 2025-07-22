@@ -57,6 +57,8 @@ jobs:
     strategy:
       # LEARNING POINT: This creates parallel jobs for each test type
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+      # Don't stop other tests if one fails
+      fail-fast: false
     
     # LEARNING POINT: Each job produces an output
     outputs:
@@ -79,11 +81,13 @@ jobs:
           if [[ "${{ matrix.test }}" == "unit" ]]; then
             echo "Unit tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
-          # E2E tests always fail
+          # E2E tests always fail - GUARANTEED FAILURE
           elif [[ "${{ matrix.test }}" == "e2e" ]]; then
             echo "E2E tests failed!"
             echo "status=failed" >> $GITHUB_OUTPUT
-            exit 1  # This makes the job fail
+            # Force an error to ensure this job fails
+            echo "Forcing test failure for demonstration purposes"
+            false  # This command always returns a non-zero exit code
           # Integration tests always pass
           else
             echo "Integration tests passed!"
@@ -117,6 +121,9 @@ jobs:
           else
             echo "✅ All tests passed"
           fi
+          
+          # Print the actual result for debugging
+          echo "Raw test result value: ${{ needs.test.result }}"
 
   # ===================================================
   # PATTERN 4: CONDITIONAL EXECUTION
