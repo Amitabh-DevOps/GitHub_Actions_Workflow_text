@@ -76,7 +76,7 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     # Allow workflow to continue even if this job fails
-    continue-on-error: true
+    # continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
