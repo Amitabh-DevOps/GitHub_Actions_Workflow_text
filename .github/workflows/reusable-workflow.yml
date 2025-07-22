@@ -97,8 +97,8 @@ jobs:
         run: npm test
       
       # LEARNING POINT: Build the application
-      - name: Build
-        run: npm run build
+      # - name: Build
+      #   run: npm run build
       
       # LEARNING POINT: Upload artifacts with dynamic name
       - name: Upload build artifacts
