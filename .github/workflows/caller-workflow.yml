@@ -1,0 +1,92 @@
+# ===================================================
+# CALLER WORKFLOW EXAMPLE - MODULE 5
+# ===================================================
+# LEARNING OBJECTIVES:
+# - Understand how to call reusable workflows
+# - Learn how to pass inputs and secrets
+# - See how to use outputs from reusable workflows
+# - Implement job dependencies with reusable workflows
+# ===================================================
+
+name: CI Pipeline with Reusable Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  # LEARNING POINT: Call the reusable workflow
+  build-and-test:
+    # LEARNING POINT: Reference to the reusable workflow
+    # Format: {owner}/{repo}/.github/workflows/{filename}@{ref}
+    # For workflows in the same repo, you can use ./.github/workflows/{filename}
+    uses: ./.github/workflows/reusable-workflow.yml
+    with:
+      # LEARNING POINT: Passing inputs to the reusable workflow
+      node-version: '16'
+      run-lint: true
+      artifact-name: 'my-build'
+    secrets:
+      # LEARNING POINT: Passing secrets to the reusable workflow
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}   # Add this secret in repo secerts before running it
+  
+  # LEARNING POINT: Using outputs from the reusable workflow
+  report:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report test results
+        run: |
+          echo "Test result: ${{ needs.build-and-test.outputs.test-result }}"
+      
+      - name: Show build ID
+        run: |
+          echo "Build ID: ${{ needs.build-and-test.outputs.build-id }}"
+  
+  # LEARNING POINT: Conditional deployment based on workflow_dispatch input
+  deploy:
+    needs: [build-and-test, report]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Using the environment specified in the manual trigger
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: my-build
+          path: dist/
+      
+      - name: Deploy to ${{ github.event.inputs.environment }}
+        run: |
+          echo "Deploying build ${{ needs.build-and-test.outputs.build-id }} to ${{ github.event.inputs.environment }}"
+          echo "Using environment-specific variables:"
+          echo "API URL: ${{ vars.API_URL }}"
+          
+          # Simulate deployment
+          echo "Deployment successful!"
+
+# ===================================================
+# BEST PRACTICES DEMONSTRATED:
+# ===================================================
+# 1. Proper reference to reusable workflow
+# 2. Passing inputs with appropriate values
+# 3. Secure handling of secrets
+# 4. Accessing and using outputs from reusable workflow
+# 5. Proper job dependencies with 'needs'
+# 6. Conditional execution based on event type
+# 7. Environment-specific deployment
+# 8. Artifact handling between jobs
