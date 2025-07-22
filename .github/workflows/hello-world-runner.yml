@@ -16,8 +16,9 @@ on:
   workflow_dispatch:
   
   # Automatic trigger on push to main branch
-  push:
-    branches: [ main ]
+  # Uncomment push trigger when using it
+  # push:
+  #   branches: [ main ]
 
 jobs:
   # LEARNING POINT: Simple job targeting self-hosted runner
