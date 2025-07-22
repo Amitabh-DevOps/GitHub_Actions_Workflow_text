@@ -53,10 +53,6 @@ jobs:
         test_type: ${{ fromJson(needs.setup.outputs.test_data) }}
       fail-fast: false
     
-    # LEARNING POINT: Each parallel job produces an output
-    outputs:
-      status-${{ matrix.test_type }}: ${{ steps.run-test.outputs.status }}
-    
     steps:
       - uses: actions/checkout@v4
       
@@ -106,9 +102,6 @@ jobs:
           
           echo "Test results summary:"
           echo "---------------------"
-          echo "Unit tests: ${{ needs.test.outputs['status-unit'] || 'unknown' }}"
-          echo "API tests: ${{ needs.test.outputs['status-api'] || 'unknown' }}"
-          echo "UI tests: ${{ needs.test.outputs['status-ui'] || 'unknown' }}"
           
           # Check if any job failed
           if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
