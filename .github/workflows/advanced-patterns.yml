@@ -22,6 +22,8 @@ jobs:
   # ===================================================
   # PATTERN 1: SETUP JOB
   # ===================================================
+  # LEARNING POINT: The setup job runs first and prepares everything needed
+  # for the parallel test jobs. This is the starting point of the fan-out pattern.
   prepare:
     name: Prepare Test Data
     runs-on: ubuntu-latest
@@ -29,6 +31,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # LEARNING POINT: In a real scenario, this step might generate test data,
+      # build artifacts, or prepare the environment for testing
       - name: Generate test data
         run: |
           echo "Preparing test environment..."
@@ -37,14 +41,20 @@ jobs:
   # ===================================================
   # PATTERN 2: FAN-OUT (PARALLEL JOBS)
   # ===================================================
+  # LEARNING POINT: Multiple test jobs that depend on the prepare job.
+  # These jobs run in parallel, demonstrating the "fan-out" pattern.
+  # Each job focuses on a different type of test.
   test-unit:
     name: Unit Tests
+    # LEARNING POINT: The 'needs' keyword creates a dependency on the prepare job.
+    # This job will only start after the prepare job completes successfully.
     needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # LEARNING POINT: This job always succeeds, simulating passing unit tests
       - name: Run unit tests
         run: |
           echo "Running unit tests..."
@@ -52,58 +62,74 @@ jobs:
 
   test-integration:
     name: Integration Tests
+    # LEARNING POINT: This job also depends on the prepare job
     needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # LEARNING POINT: This job randomly passes or fails, demonstrating
+      # how workflows handle both success and failure scenarios
       - name: Run integration tests
         run: |
           echo "Running integration tests..."
+          
+          # Generate and print a random number
+          RANDOM_NUM=$((RANDOM % 2))
+          echo "Random number generated: $RANDOM_NUM (0=pass, 1=fail)"
+          
           # Randomly pass or fail
-          if [[ $((RANDOM % 2)) -eq 0 ]]; then
+          if [[ $RANDOM_NUM -eq 0 ]]; then
             echo "Integration tests passed!"
           else
             echo "Integration tests failed!"
-            exit 1
+            exit 1  # Non-zero exit code causes the job to fail
           fi
 
   test-e2e:
     name: End-to-End Tests
+    # LEARNING POINT: This job also depends on the prepare job
     needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # LEARNING POINT: This job always succeeds, simulating passing E2E tests
       - name: Run E2E tests
         run: |
           echo "Running end-to-end tests..."
-          echo "End-to-end tests failed!"
+          echo "End-to-end tests passed!"
 
   # ===================================================
   # PATTERN 3: FAN-IN (AGGREGATION)
   # ===================================================
+  # LEARNING POINT: The report job depends on all test jobs and aggregates
+  # their results. This demonstrates the "fan-in" pattern where multiple
+  # parallel jobs converge into a single job.
   report:
     name: Test Report
+    # LEARNING POINT: This job depends on all three test jobs
     needs: [test-unit, test-integration, test-e2e]
     runs-on: ubuntu-latest
-    # Run this job even if some tests failed
+    # LEARNING POINT: The 'always()' function ensures this job runs even if
+    # some of the test jobs fail. This is crucial for the fan-in pattern.
     if: always()
     steps:
+      # LEARNING POINT: This step collects and reports results from all test jobs
       - name: Generate test report
         run: |
           echo "Generating test report..."
           echo "Test Results Summary:"
           echo "====================="
           
-          # Check results of each test job
+          # LEARNING POINT: Access the result of each job using needs.<job-id>.result
           echo "Unit Tests: ${{ needs.test-unit.result }}"
           echo "Integration Tests: ${{ needs.test-integration.result }}"
           echo "E2E Tests: ${{ needs.test-e2e.result }}"
           
-          # Overall status
+          # LEARNING POINT: Determine overall status based on all test results
           if [[ "${{ needs.test-unit.result }}" == "success" && 
                 "${{ needs.test-integration.result }}" == "success" && 
                 "${{ needs.test-e2e.result }}" == "success" ]]; then
@@ -115,13 +141,19 @@ jobs:
   # ===================================================
   # PATTERN 4: CONDITIONAL EXECUTION
   # ===================================================
+  # LEARNING POINT: These deployment jobs demonstrate conditional execution
+  # based on the results of previous jobs.
   deploy-staging:
     name: Deploy to Staging
+    # LEARNING POINT: This job depends on all test jobs and the report job
     needs: [test-unit, test-integration, test-e2e, report]
     runs-on: ubuntu-latest
-    # Always deploy to staging, even if some tests failed
+    # LEARNING POINT: The 'always()' function ensures this job always runs,
+    # demonstrating a common pattern where staging deployments happen regardless
+    # of test results for verification purposes.
     if: always()
     steps:
+      # LEARNING POINT: Simulates deploying to a staging environment
       - name: Deploy to staging
         run: |
           echo "Deploying to staging environment..."
@@ -129,14 +161,17 @@ jobs:
 
   deploy-production:
     name: Deploy to Production
+    # LEARNING POINT: This job also depends on all test jobs and the report job
     needs: [test-unit, test-integration, test-e2e, report]
     runs-on: ubuntu-latest
-    # Only deploy to production if all tests passed
+    # LEARNING POINT: This conditional ensures production deployment only happens
+    # if ALL tests pass, demonstrating a safety mechanism for production environments.
     if: |
       needs.test-unit.result == 'success' && 
       needs.test-integration.result == 'success' && 
       needs.test-e2e.result == 'success'
     steps:
+      # LEARNING POINT: Simulates deploying to a production environment
       - name: Deploy to production
         run: |
           echo "Deploying to production environment..."
@@ -149,9 +184,19 @@ jobs:
 #    - Single prepare job (setup)
 #    - Multiple test jobs run in parallel (fan-out)
 #    - Report job collects results (fan-in)
-# 2. Job dependencies using 'needs'
-# 3. continue-on-error allows the workflow to proceed even when tests fail
-# 4. Conditional execution with if statements
-# 5. The 'always()' function ensures jobs run regardless of previous job status
-# 6. Different deployment strategies based on test results
+# 2. Job dependencies using 'needs':
+#    - Creates a directed acyclic graph (DAG) of job execution
+#    - Enables complex workflow orchestration
+# 3. Conditional execution with if statements:
+#    - Control which jobs run based on conditions
+#    - Access job results with needs.<job-id>.result
+# 4. The 'always()' function:
+#    - Ensures jobs run regardless of previous job status
+#    - Essential for reporting and cleanup tasks
+# 5. Different deployment strategies:
+#    - Staging: Deploy always for verification
+#    - Production: Deploy only when all tests pass
+# 6. Exit codes in steps:
+#    - Zero exit code (0) indicates success
+#    - Non-zero exit code indicates failure
 # ===================================================
