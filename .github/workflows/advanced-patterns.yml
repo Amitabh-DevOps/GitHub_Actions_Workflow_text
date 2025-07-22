@@ -3,7 +3,7 @@
 # ===================================================
 # LEARNING OBJECTIVES:
 # - Understand fan-out/fan-in pattern
-# - Learn dynamic matrix generation
+# - Learn job dependencies and outputs
 # - See conditional job execution
 # - Implement job output sharing
 # ===================================================
@@ -20,46 +20,12 @@ on:
 
 jobs:
   # ===================================================
-  # PATTERN 1: DYNAMIC MATRIX GENERATION
+  # PATTERN 1: FAN-OUT (PARALLEL EXECUTION)
   # ===================================================
-  discover:
-    name: Discover Test Suites
+  # LEARNING POINT: Separate jobs for different test types
+  unit-test:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
-    # LEARNING POINT: This job discovers what needs to be tested
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      # LEARNING POINT: Dynamically generate a matrix based on repository content
-      - name: Find test directories
-        id: set-matrix
-        run: |
-          echo "Finding test suites..."
-          
-          # For demonstration, we'll use a simple hardcoded matrix
-          # In a real scenario, you might scan directories or query an API
-          echo 'matrix={"test":["unit","integration","e2e"]}' >> $GITHUB_OUTPUT
-          
-          echo "Matrix generated!"
-
-  # ===================================================
-  # PATTERN 2: FAN-OUT (PARALLEL EXECUTION)
-  # ===================================================
-  test:
-    name: Run ${{ matrix.test }} tests
-    needs: discover
-    runs-on: ubuntu-latest
-    # LEARNING POINT: Allow the workflow to continue even if some tests fail
-    continue-on-error: true
-    # LEARNING POINT: Use dynamically generated matrix
-    strategy:
-      # LEARNING POINT: This creates parallel jobs for each test type
-      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
-      # Don't stop other tests if one fails
-      fail-fast: false
-    
     # LEARNING POINT: Each job produces an output
     outputs:
       status: ${{ steps.run-tests.outputs.status }}
@@ -67,70 +33,96 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # LEARNING POINT: Different steps based on test type
-      - name: Run ${{ matrix.test }} tests
+      - name: Run unit tests
         id: run-tests
         run: |
-          echo "Running ${{ matrix.test }} tests..."
+          echo "Running unit tests..."
+          echo "Unit tests passed!"
+          echo "status=passed" >> $GITHUB_OUTPUT
+
+  integration-test:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Allow the workflow to continue even if this test fails
+    continue-on-error: true
+    # LEARNING POINT: Each job produces an output
+    outputs:
+      status: ${{ steps.run-tests.outputs.status }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run integration tests
+        id: run-tests
+        run: |
+          echo "Running integration tests..."
           
-          # Simulate test execution
-          sleep 2
-          
-          # For demonstration, we'll make some tests pass and some fail
-          # Unit tests always pass
-          if [[ "${{ matrix.test }}" == "unit" ]]; then
-            echo "Unit tests passed!"
+          # Randomly pass or fail
+          if [[ $RANDOM -gt 16000 ]]; then
+            echo "Integration tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
-          # E2E tests always fail - GUARANTEED FAILURE
-          elif [[ "${{ matrix.test }}" == "e2e" ]]; then
-            echo "E2E tests failed!"
-            echo "status=failed" >> $GITHUB_OUTPUT
-            # Force an error to ensure this job fails
-            echo "Forcing test failure for demonstration purposes"
-            false  # This command always returns a non-zero exit code
-          # Integration tests always pass
           else
             echo "Integration tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
           fi
 
+  e2e-test:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    # LEARNING POINT: Allow the workflow to continue even if this test fails
+    continue-on-error: true
+    # LEARNING POINT: Each job produces an output
+    outputs:
+      status: ${{ steps.run-tests.outputs.status }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run E2E tests
+        id: run-tests
+        run: |
+          echo "Running E2E tests..."
+          echo "E2E tests failed!"
+          echo "status=failed" >> $GITHUB_OUTPUT
+          # Force an error to ensure this job fails
+          exit 1
+
   # ===================================================
-  # PATTERN 3: FAN-IN (RESULT AGGREGATION)
+  # PATTERN 2: FAN-IN (RESULT AGGREGATION)
   # ===================================================
   report:
     name: Aggregate Test Results
     # LEARNING POINT: This job runs after all test jobs complete
-    needs: test
+    needs: [unit-test, integration-test, e2e-test]
     runs-on: ubuntu-latest
     # LEARNING POINT: Run even if some tests failed
     if: always()
     
     steps:
-      # LEARNING POINT: Access outputs from all matrix combinations
+      # LEARNING POINT: Access outputs from all test jobs
       - name: Collect test results
         run: |
           echo "Collecting test results from all jobs..."
           
-          # Simple check for failures - this will work reliably
           echo "Test results summary:"
           echo "---------------------"
+          echo "Unit tests: ${{ needs.unit-test.outputs.status }}"
+          echo "Integration tests: ${{ needs.integration-test.outputs.status }}"
+          echo "E2E tests: ${{ needs.e2e-test.outputs.status }}"
           
-          # Check if any job in the matrix failed
-          if ${{ contains(needs.test.result, 'failure') }}; then
-            echo "❌ Some tests failed"
+          # Check if any job failed
+          if [[ "${{ needs.e2e-test.result }}" == "failure" ]]; then
+            echo "❌ E2E tests failed"
           else
             echo "✅ All tests passed"
           fi
-          
-          # Print the actual result for debugging
-          echo "Raw test result value: ${{ needs.test.result }}"
 
   # ===================================================
-  # PATTERN 4: CONDITIONAL EXECUTION
+  # PATTERN 3: CONDITIONAL EXECUTION
   # ===================================================
   deploy-staging:
     name: Deploy to Staging
-    needs: [test, report]
+    needs: [unit-test, integration-test, e2e-test, report]
     runs-on: ubuntu-latest
     # LEARNING POINT: Always deploy to staging, even if tests fail
     if: always()
@@ -143,10 +135,13 @@ jobs:
 
   deploy-production:
     name: Deploy to Production
-    needs: [test, report]
+    needs: [unit-test, integration-test, e2e-test, report]
     runs-on: ubuntu-latest
     # LEARNING POINT: Only deploy to production if all tests pass
-    if: ${{ !contains(needs.test.result, 'failure') }}
+    if: |
+      needs.unit-test.result == 'success' && 
+      needs.integration-test.result == 'success' && 
+      needs.e2e-test.result == 'success'
     
     steps:
       - name: Deploy to production
@@ -158,7 +153,7 @@ jobs:
 # LEARNING NOTES:
 # ===================================================
 # 1. Fan-out/fan-in pattern allows parallel execution followed by result aggregation
-# 2. Dynamic matrix generation creates flexible parallel jobs
+# 2. Separate jobs can run in parallel without using a matrix
 # 3. Job outputs can be shared between jobs using needs.<job>.outputs
 # 4. continue-on-error allows the workflow to proceed even when tests fail
 # 5. Conditional execution controls when jobs should run
