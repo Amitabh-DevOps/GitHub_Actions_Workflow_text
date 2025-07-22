@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     # LEARNING POINT: This job prepares data for parallel jobs
     outputs:
-      test-data: ${{ steps.prepare.outputs.test-data }}
+      test_data: ${{ steps.prepare.outputs.test_data }}
     
     steps:
       - name: Prepare test data
@@ -35,14 +35,14 @@ jobs:
         run: |
           echo "Preparing test data for parallel jobs..."
           # Create test data for parallel jobs
-          echo 'test-data=["unit","api","ui"]' >> $GITHUB_OUTPUT
+          echo 'test_data=["unit","api","ui"]' >> $GITHUB_OUTPUT
           echo "Test data prepared!"
 
   # ===================================================
   # PATTERN 2: FAN-OUT - Run tests in parallel
   # ===================================================
   test:
-    name: Test ${{ matrix.test-type }}
+    name: Test ${{ matrix.test_type }}
     needs: setup
     runs-on: ubuntu-latest
     # LEARNING POINT: Allow the workflow to continue even if tests fail
@@ -50,27 +50,27 @@ jobs:
     # LEARNING POINT: Create parallel jobs based on setup output
     strategy:
       matrix:
-        test-type: ${{ fromJson(needs.setup.outputs.test-data) }}
+        test_type: ${{ fromJson(needs.setup.outputs.test_data) }}
       fail-fast: false
     
     # LEARNING POINT: Each parallel job produces an output
     outputs:
-      status-${{ matrix.test-type }}: ${{ steps.run-test.outputs.status }}
+      status-${{ matrix.test_type }}: ${{ steps.run-test.outputs.status }}
     
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run ${{ matrix.test-type }} tests
+      - name: Run ${{ matrix.test_type }} tests
         id: run-test
         run: |
-          echo "Running ${{ matrix.test-type }} tests..."
+          echo "Running ${{ matrix.test_type }} tests..."
           
           # Different behavior based on test type
-          if [[ "${{ matrix.test-type }}" == "unit" ]]; then
+          if [[ "${{ matrix.test_type }}" == "unit" ]]; then
             # Unit tests always pass
             echo "Unit tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.test-type }}" == "api" ]]; then
+          elif [[ "${{ matrix.test_type }}" == "api" ]]; then
             # API tests randomly pass or fail
             if [[ $((RANDOM % 2)) -eq 0 ]]; then
               echo "API tests passed!"
