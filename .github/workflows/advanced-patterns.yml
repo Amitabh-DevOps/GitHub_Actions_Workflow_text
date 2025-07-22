@@ -84,15 +84,10 @@ jobs:
             echo "E2E tests failed!"
             echo "status=failed" >> $GITHUB_OUTPUT
             exit 1  # This makes the job fail
-          # Integration tests randomly pass or fail
+          # Integration tests always pass
           else
-            if [[ $RANDOM -gt 16000 ]]; then
-              echo "Integration tests passed!"
-              echo "status=passed" >> $GITHUB_OUTPUT
-            else
-              echo "Integration tests passed!"
-              echo "status=passed" >> $GITHUB_OUTPUT
-            fi
+            echo "Integration tests passed!"
+            echo "status=passed" >> $GITHUB_OUTPUT
           fi
 
   # ===================================================
@@ -112,11 +107,15 @@ jobs:
         run: |
           echo "Collecting test results from all jobs..."
           
-          # Check the overall job status
-          if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
-            echo "Some tests failed, but we're continuing with the workflow"
+          # Simple check for failures - this will work reliably
+          echo "Test results summary:"
+          echo "---------------------"
+          
+          # Check if any job in the matrix failed
+          if ${{ contains(needs.test.result, 'failure') }}; then
+            echo "❌ Some tests failed"
           else
-            echo "All tests passed successfully!"
+            echo "✅ All tests passed"
           fi
 
   # ===================================================
@@ -140,7 +139,7 @@ jobs:
     needs: [test, report]
     runs-on: ubuntu-latest
     # LEARNING POINT: Only deploy to production if all tests pass
-    if: needs.test.result == 'success'
+    if: ${{ !contains(needs.test.result, 'failure') }}
     
     steps:
       - name: Deploy to production
