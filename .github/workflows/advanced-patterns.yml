@@ -54,8 +54,6 @@ jobs:
     name: Integration Tests
     needs: prepare
     runs-on: ubuntu-latest
-    # Allow workflow to continue even if this job fails
-    # continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,8 +73,6 @@ jobs:
     name: End-to-End Tests
     needs: prepare
     runs-on: ubuntu-latest
-    # Allow workflow to continue even if this job fails
-    # continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -85,7 +81,6 @@ jobs:
         run: |
           echo "Running end-to-end tests..."
           echo "End-to-end tests failed!"
-          # exit 1
 
   # ===================================================
   # PATTERN 3: FAN-IN (AGGREGATION)
