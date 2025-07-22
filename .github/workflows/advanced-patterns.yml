@@ -3,9 +3,9 @@
 # ===================================================
 # LEARNING OBJECTIVES:
 # - Understand fan-out/fan-in pattern
-# - Learn job dependencies and outputs
+# - Learn job dependencies
 # - See conditional job execution
-# - Implement job output sharing
+# - Implement workflow orchestration
 # ===================================================
 
 name: Advanced Workflow Patterns
@@ -20,89 +20,101 @@ on:
 
 jobs:
   # ===================================================
-  # PATTERN 1: SETUP - Prepares work for parallel jobs
+  # PATTERN 1: SETUP JOB
   # ===================================================
-  setup:
-    name: Setup Test Environment
+  prepare:
+    name: Prepare Test Data
     runs-on: ubuntu-latest
-    # LEARNING POINT: This job prepares data for parallel jobs
-    outputs:
-      test_data: ${{ steps.prepare.outputs.test_data }}
-    
     steps:
-      - name: Prepare test data
-        id: prepare
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Generate test data
         run: |
-          echo "Preparing test data for parallel jobs..."
-          # Create test data for parallel jobs
-          echo 'test_data=["unit","api","ui"]' >> $GITHUB_OUTPUT
-          echo "Test data prepared!"
+          echo "Preparing test environment..."
+          echo "Test data generated successfully!"
 
   # ===================================================
-  # PATTERN 2: FAN-OUT - Run tests in parallel
+  # PATTERN 2: FAN-OUT (PARALLEL JOBS)
   # ===================================================
-  test:
-    name: Test ${{ matrix.test_type }}
-    needs: setup
+  test-unit:
+    name: Unit Tests
+    needs: prepare
     runs-on: ubuntu-latest
-    # LEARNING POINT: Allow the workflow to continue even if tests fail
-    continue-on-error: true
-    # LEARNING POINT: Create parallel jobs based on setup output
-    strategy:
-      matrix:
-        test_type: ${{ fromJson(needs.setup.outputs.test_data) }}
-      fail-fast: false
-    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - name: Run ${{ matrix.test_type }} tests
-        id: run-test
+      - name: Run unit tests
         run: |
-          echo "Running ${{ matrix.test_type }} tests..."
-          
-          # Different behavior based on test type
-          if [[ "${{ matrix.test_type }}" == "unit" ]]; then
-            # Unit tests always fail
-            echo "Unit tests failed!"
-            echo "status=failed" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.test_type }}" == "api" ]]; then
-              echo "API tests failed!"
-              echo "status=failed" >> $GITHUB_OUTPUT
-              exit 1
-            fi
+          echo "Running unit tests..."
+          echo "Unit tests passed!"
+
+  test-integration:
+    name: Integration Tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    # Allow workflow to continue even if this job fails
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests..."
+          # Randomly pass or fail
+          if [[ $((RANDOM % 2)) -eq 0 ]]; then
+            echo "Integration tests passed!"
           else
-            # UI tests always fail
-            echo "UI tests failed!"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "Integration tests failed!"
             exit 1
           fi
 
+  test-e2e:
+    name: End-to-End Tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    # Allow workflow to continue even if this job fails
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run E2E tests
+        run: |
+          echo "Running end-to-end tests..."
+          echo "End-to-end tests failed!"
+          exit 1
+
   # ===================================================
-  # PATTERN 3: FAN-IN - Aggregate results from parallel jobs
+  # PATTERN 3: FAN-IN (AGGREGATION)
   # ===================================================
   report:
-    name: Aggregate Test Results
-    # LEARNING POINT: This job runs after all parallel test jobs complete
-    needs: test
+    name: Test Report
+    needs: [test-unit, test-integration, test-e2e]
     runs-on: ubuntu-latest
-    # LEARNING POINT: Run even if some tests failed
+    # Run this job even if some tests failed
     if: always()
-    
     steps:
-      # LEARNING POINT: Access outputs from all parallel jobs
-      - name: Collect test results
+      - name: Generate test report
         run: |
-          echo "Collecting results from all parallel test jobs..."
+          echo "Generating test report..."
+          echo "Test Results Summary:"
+          echo "====================="
           
-          echo "Test results summary:"
-          echo "---------------------"
+          # Check results of each test job
+          echo "Unit Tests: ${{ needs.test-unit.result }}"
+          echo "Integration Tests: ${{ needs.test-integration.result }}"
+          echo "E2E Tests: ${{ needs.test-e2e.result }}"
           
-          # Check if any job failed
-          if [[ "${{ contains(needs.test.result, 'failure') }}" == "true" ]]; then
-            echo "❌ Some tests failed"
+          # Overall status
+          if [[ "${{ needs.test-unit.result }}" == "success" && 
+                "${{ needs.test-integration.result }}" == "success" && 
+                "${{ needs.test-e2e.result }}" == "success" ]]; then
+            echo "✅ All tests passed!"
           else
-            echo "✅ All tests passed"
+            echo "❌ Some tests failed!"
           fi
 
   # ===================================================
@@ -110,11 +122,10 @@ jobs:
   # ===================================================
   deploy-staging:
     name: Deploy to Staging
-    needs: [test, report]
+    needs: [test-unit, test-integration, test-e2e, report]
     runs-on: ubuntu-latest
-    # LEARNING POINT: Always deploy to staging, even if tests fail
+    # Always deploy to staging, even if some tests failed
     if: always()
-    
     steps:
       - name: Deploy to staging
         run: |
@@ -123,11 +134,13 @@ jobs:
 
   deploy-production:
     name: Deploy to Production
-    needs: [test, report]
+    needs: [test-unit, test-integration, test-e2e, report]
     runs-on: ubuntu-latest
-    # LEARNING POINT: Only deploy to production if all tests pass
-    if: needs.test.result == 'success'
-    
+    # Only deploy to production if all tests passed
+    if: |
+      needs.test-unit.result == 'success' && 
+      needs.test-integration.result == 'success' && 
+      needs.test-e2e.result == 'success'
     steps:
       - name: Deploy to production
         run: |
@@ -138,13 +151,12 @@ jobs:
 # LEARNING NOTES:
 # ===================================================
 # 1. Fan-out/fan-in pattern:
-#    - Setup job prepares data (fan-out preparation)
-#    - Test jobs run in parallel (fan-out execution)
+#    - Single prepare job (setup)
+#    - Multiple test jobs run in parallel (fan-out)
 #    - Report job collects results (fan-in)
-# 2. Dynamic matrix creation from job outputs
-# 3. Job outputs can be shared between jobs
-# 4. continue-on-error allows the workflow to proceed even when tests fail
-# 5. Conditional execution controls when jobs should run
-# 6. The 'always()' function ensures jobs run regardless of previous job status
-# 7. The 'needs' keyword creates job dependencies
+# 2. Job dependencies using 'needs'
+# 3. continue-on-error allows the workflow to proceed even when tests fail
+# 4. Conditional execution with if statements
+# 5. The 'always()' function ensures jobs run regardless of previous job status
+# 6. Different deployment strategies based on test results
 # ===================================================
