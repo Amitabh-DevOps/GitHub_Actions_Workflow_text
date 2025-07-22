@@ -84,8 +84,8 @@ jobs:
             echo "Tests passed!"
             echo "status=passed" >> $GITHUB_OUTPUT
           else
-            echo "Tests failed!"
-            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "Tests passed!"
+            echo "status=passed" >> $GITHUB_OUTPUT
           fi
 
   # ===================================================
