@@ -16,5 +16,5 @@ jobs:
           message: 'Great job creating your first action!'
       
       - name: Get the output time
-        run: echo "The time was ${{ steps.hello.outputs.time }}"
+        run: echo "The time was ${{ steps.hello.result.time }}"
         if: success()
