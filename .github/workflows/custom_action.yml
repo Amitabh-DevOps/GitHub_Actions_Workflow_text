@@ -1,21 +1,38 @@
+# Name of the workflow - appears in the Actions tab
 name: Custom Action test
+
+# Define when this workflow will run
 on: 
+  # Run on pushes to the main branch
   push:
     branches: [main]
 
+  # Allow manual triggering from the Actions tab
   workflow_dispatch:
 
+# Jobs that make up this workflow
 jobs:
+  # Job ID - must be unique within the workflow
   hello:
+    # Type of runner to use for this job
     runs-on: ubuntu-latest
+    
+    # Sequence of steps to execute
     steps:
+      # Step that uses our custom action
       - name: Hello World Action Step
+        # Reference to our custom action - format is {owner}/{repo}@{ref}
+        uses: Amitabh-DevOps/hello-world-javascript-action@v1.0.1
+        # Optional ID to reference this step later
         id: hello
-        uses: Amitabh-DevOps/hello-world-javascript-action@v1.0.0
+        # Inputs to pass to our action
         with:
-          name: 'Amitabh'
+          name: 'Amitabh'  # Overrides the default 'World'
           message: 'Great job creating your first action!'
       
+      # Step that uses the output from our custom action
       - name: Get the output time
+        # Use the 'steps' context to access outputs from previous steps
         run: echo "The time was ${{ steps.hello.outputs.time }}"
+        # Only run this step if the previous step succeeded
         if: success()
