@@ -15,8 +15,9 @@ on:
   workflow_dispatch:
   
   # Automatic trigger on push to main
-  push:
-    branches: [main]
+  # uncomment push trigger when to use
+  # push:
+  #   branches: [main]
 
 jobs:
   # ===================================================
