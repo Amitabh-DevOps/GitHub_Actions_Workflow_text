@@ -1,0 +1,20 @@
+name: Custom Action test
+on: 
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello World Action Step
+        uses: Amitabh-DevOps/hello-world-javascript-action@v1.0.0
+        with:
+          name: 'Amitabh'
+          message: 'Great job creating your first action!'
+      
+      - name: Get the output time
+        run: echo "The time was ${{ steps.hello.outputs.time }}"
+        if: success()
