@@ -26,9 +26,9 @@ jobs:
         # Optional ID to reference this step later
         id: hello
         # Inputs to pass to our action
-        # with:
-        #   name: 'Amitabh'  # Overrides the default 'World'
-        #   message: 'Great job creating your first action!'
+        with:
+          name: 'Amitabh'  # Overrides the default 'World'
+          message: 'Great job creating your first action!'
       
       # Step that uses the output from our custom action
       - name: Get the output time
