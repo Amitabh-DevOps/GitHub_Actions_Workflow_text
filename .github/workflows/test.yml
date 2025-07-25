@@ -1,0 +1,21 @@
+name: just testing working
+on:
+  workflow_dispatch:
+
+  
+env:
+  COLOR: blue  # Workflow level
+
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    env:
+      COLOR: green  # Job level - overrides workflow level
+    steps:
+      - name: Print color 1
+        run: echo "Color is $COLOR"  # Prints "green"
+      
+      - name: Print color 2
+        env:
+          COLOR: red  # Step level - overrides job level
+        run: echo "Color is $COLOR"  # Prints "red"
