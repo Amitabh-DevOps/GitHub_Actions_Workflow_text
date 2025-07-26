@@ -1,0 +1,11 @@
+    name: Hello World Workflow
+
+    on: [push] # This workflow runs on every push to the repository
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest # The job will run on an Ubuntu virtual machine
+
+        steps:
+          - name: Say hello
+            run: echo "Hello, World!" # Simple command to print "Hello, World!"
